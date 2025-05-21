@@ -609,25 +609,79 @@ export default function GenogramApp() {
             </div>
           ) : (
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="text-lg font-medium">JSON Input</h2>
-                <button
-                  onClick={() => {
-                    const data = exportData();
-                    const blob = new Blob([data], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'genogram.json';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <Download size={14} className="mr-1" /> Download JSON
-                </button>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-medium">JSON Input</h2>
+                  <div className="flex space-x-2">
+                    <label
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
+                    >
+                      <FileUp size={14} className="mr-1" /> Upload
+                      <input
+                        type="file"
+                        accept=".json,application/json"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            try {
+                              const data = JSON.parse(event.target.result);
+                              if (data.members && Array.isArray(data.members)) {
+                                // Process members to ensure birthYear is set from birthDate if needed
+                                const processedMembers = data.members.map(member => ({
+                                  ...member,
+                                  // If birthDate exists but birthYear is missing, parse year from birthDate
+                                  ...(member.birthDate && !member.birthYear && {
+                                    birthYear: new Date(member.birthDate).getFullYear()
+                                  })
+                                }));
+                                
+                                setFamilyMembers(processedMembers);
+                                setJsonInput(JSON.stringify({
+                                  ...data,
+                                  members: processedMembers
+                                }, null, 2));
+                              }
+                              if (data.relationships && Array.isArray(data.relationships)) {
+                                setRelationships(data.relationships);
+                              }
+                            } catch (err) {
+                              setError('Invalid JSON file');
+                              console.error('Error parsing JSON:', err);
+                            }
+                          };
+                          reader.onerror = () => {
+                            setError('Error reading file');
+                          };
+                          reader.readAsText(file);
+                          // Reset the input to allow selecting the same file again
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    <button
+                      onClick={() => {
+                        const data = exportData();
+                        const blob = new Blob([data], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'genogram.json';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      title="Download JSON"
+                    >
+                      <Download size={14} className="mr-1" /> Download
+                    </button>
+                  </div>
+                </div>
               </div>
               <textarea
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 font-mono text-sm"
