@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Download, FileJson, FileUp, Trash2, Plus, X } from 'lucide-react';
-import { ReactFlow as XYFlow, ReactFlowProvider, Background, Controls, Handle, Position, MarkerType } from '@xyflow/react';
+import { ReactFlow as XYFlow, ReactFlowProvider, Background, Controls, Handle, Position, MarkerType, applyNodeChanges } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import dagre from '@dagrejs/dagre';
 
@@ -362,8 +362,26 @@ export default function GenogramApp() {
   };
 
   // Simple genogram rendering function 
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+
+  // Update nodes and edges when layout changes
+  useEffect(() => {
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+  }, [layoutedNodes, layoutedEdges]);
+
+  const onNodesChange = useCallback(
+    (changes) => {
+      setNodes((nds) =>
+        applyNodeChanges(changes, nds)
+      );
+    },
+    []
+  );
+
   const renderGenogram = () => {
-    if (layoutedNodes.length === 0) {
+    if (nodes.length === 0) {
       return (
         <div className="text-center text-gray-500 p-6 bg-white rounded-lg shadow">
           Add family members to start building your genogram.
@@ -375,9 +393,11 @@ export default function GenogramApp() {
       <div style={{ height: '600px', width: '100%' }} className="border border-gray-200 rounded bg-white shadow">
         <ReactFlowProvider>
           <XYFlow
-            nodes={layoutedNodes}
-            edges={layoutedEdges}
+            nodes={nodes}
+            edges={edges}
             nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            nodesDraggable={true}
             fitView
             attributionPosition="top-right"
           >
