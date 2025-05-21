@@ -350,9 +350,23 @@ export default function GenogramApp() {
   };
 
   const exportData = () => {
+    // Prepare the data for export, ensuring we include all necessary fields
     const data = {
-      members: familyMembers,
-      relationships: relationships
+      members: familyMembers.map(({ id, name, gender, birthDate, deceased, deathDate, medicalConditions }) => ({
+        id,
+        name,
+        gender,
+        birthDate,
+        deceased,
+        deathDate: deceased ? deathDate : undefined,
+        medicalConditions: medicalConditions || undefined
+      })).filter(Boolean),
+      relationships: relationships.map(({ id, from, to, type }) => ({
+        id,
+        from,
+        to,
+        type
+      })).filter(Boolean)
     };
     
     return JSON.stringify(data, null, 2);
@@ -595,7 +609,26 @@ export default function GenogramApp() {
             </div>
           ) : (
             <div>
-              <h2 className="text-lg font-medium mb-2">JSON Input</h2>
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-lg font-medium">JSON Input</h2>
+                <button
+                  onClick={() => {
+                    const data = exportData();
+                    const blob = new Blob([data], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'genogram.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <Download size={14} className="mr-1" /> Download JSON
+                </button>
+              </div>
               <textarea
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 font-mono text-sm"
                 value={jsonInput}
