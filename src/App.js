@@ -1,5 +1,178 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Download, FileJson, FileUp, Trash2, Plus, X } from 'lucide-react';
+import { ReactFlow as XYFlow, ReactFlowProvider, Background, Controls, Handle, Position, MarkerType } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import dagre from '@dagrejs/dagre';
+
+const NODE_WIDTH = 150; 
+const NODE_HEIGHT = 100; 
+
+const getLayoutedElements = (nodes, edges, direction = 'TB') => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 70 });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    node.position = {
+      x: nodeWithPosition.x - NODE_WIDTH / 2,
+      y: nodeWithPosition.y - NODE_HEIGHT / 2,
+    };
+    return node;
+  });
+
+  return { nodes: layoutedNodes, edges };
+};
+
+// Custom Node for Male
+const MaleNode = ({ data }) => {
+  const nodeStyle = {
+    width: 50,
+    height: 50,
+    backgroundColor: data.deceased ? 'white' : '#e3f2fd',
+    border: '2px solid black',
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+  };
+  const textStyle = { fontSize: '10px', marginTop: '5px' };
+  const deceasedStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  return (
+    <div style={nodeStyle}>
+      <Handle type="target" position={Position.Top} />
+      {data.deceased && (
+        <svg style={deceasedStyle} width="100%" height="100%" viewBox="0 0 50 50">
+          <line x1="10" y1="10" x2="40" y2="40" stroke="black" strokeWidth="2" />
+          <line x1="40" y1="10" x2="10" y2="40" stroke="black" strokeWidth="2" />
+        </svg>
+      )}
+      <div style={{ position: 'absolute', bottom: '-40px', width: '100px' }}>
+        <div style={textStyle}>{data.name}</div>
+        <div style={{ ...textStyle, fontSize: '8px', color: 'gray' }}>
+          {data.birthYear}{data.deceased && data.deathYear ? `-${data.deathYear}` : ''}
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+};
+
+// Custom Node for Female
+const FemaleNode = ({ data }) => {
+  const nodeStyle = {
+    width: 50,
+    height: 50,
+    backgroundColor: data.deceased ? 'white' : '#f8bbd0',
+    border: '2px solid black',
+    borderRadius: '50%',
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+  };
+  const textStyle = { fontSize: '10px', marginTop: '5px' };
+   const deceasedStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  return (
+    <div style={nodeStyle}>
+      <Handle type="target" position={Position.Top} />
+      {data.deceased && (
+         <svg style={deceasedStyle} width="100%" height="100%" viewBox="0 0 50 50">
+          <line x1="10" y1="10" x2="40" y2="40" stroke="black" strokeWidth="2" />
+          <line x1="40" y1="10" x2="10" y2="40" stroke="black" strokeWidth="2" />
+        </svg>
+      )}
+      <div style={{ position: 'absolute', bottom: '-40px', width: '100px' }}>
+        <div style={textStyle}>{data.name}</div>
+        <div style={{ ...textStyle, fontSize: '8px', color: 'gray' }}>
+          {data.birthYear}{data.deceased && data.deathYear ? `-${data.deathYear}` : ''}
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+};
+
+// Custom Node for Other/Default
+const DefaultNode = ({ data }) => {
+  const nodeStyle = {
+    width: 50,
+    height: 50,
+    backgroundColor: data.deceased ? 'white' : '#eeeeee',
+    border: '2px solid black',
+    borderRadius: '10px', // Rounded rectangle
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+  };
+  const textStyle = { fontSize: '10px', marginTop: '5px' };
+  const deceasedStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  return (
+    <div style={nodeStyle}>
+      <Handle type="target" position={Position.Top} />
+      {data.deceased && (
+        <svg style={deceasedStyle} width="100%" height="100%" viewBox="0 0 50 50">
+          <line x1="10" y1="10" x2="40" y2="40" stroke="black" strokeWidth="2" />
+          <line x1="40" y1="10" x2="10" y2="40" stroke="black" strokeWidth="2" />
+        </svg>
+      )}
+      <div style={{ position: 'absolute', bottom: '-40px', width: '100px' }}>
+        <div style={textStyle}>{data.name}</div>
+        <div style={{ ...textStyle, fontSize: '8px', color: 'gray' }}>
+          {data.birthYear}{data.deceased && data.deathYear ? `-${data.deathYear}` : ''}
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+};
 
 export default function GenogramApp() {
   const [activeTab, setActiveTab] = useState('form');
@@ -21,6 +194,71 @@ export default function GenogramApp() {
     type: 'parent-child',
   });
   const [error, setError] = useState('');
+
+  // Base nodes derived from familyMembers
+  const baseNodes = useMemo(() => familyMembers.map((member) => ({
+    id: String(member.id),
+    data: { 
+      name: member.name, 
+      gender: member.gender, 
+      birthYear: member.birthYear, 
+      deceased: member.deceased, 
+      deathYear: member.deathYear, 
+      medicalConditions: member.medicalConditions 
+    },
+    type: member.gender === 'male' ? 'maleNode' : member.gender === 'female' ? 'femaleNode' : 'defaultNode',
+    position: { x: 0, y: 0 } // Initial position, will be overwritten by Dagre
+  })), [familyMembers]);
+
+  // Base edges derived from relationships
+  const baseEdges = useMemo(() => relationships.map((rel, index) => {
+    const edgeStyle = {};
+    let edgeMarkerEnd;
+    let edgeAnimated = false;
+
+    switch (rel.type) {
+      case 'married':
+        edgeStyle.stroke = 'black';
+        edgeStyle.strokeWidth = 3;
+        break;
+      case 'divorced':
+        edgeStyle.stroke = 'black';
+        edgeStyle.strokeWidth = 2;
+        edgeStyle.strokeDasharray = '5 5';
+        break;
+      case 'parent-child':
+        edgeStyle.stroke = 'blue';
+        edgeStyle.strokeWidth = 1; // Or 2
+        edgeMarkerEnd = { type: MarkerType.ArrowClosed, color: 'blue' };
+        edgeAnimated = true; // Keep if desired
+        break;
+      case 'siblings':
+        edgeStyle.stroke = 'green';
+        edgeStyle.strokeWidth = 1;
+        break;
+      default:
+        edgeStyle.stroke = '#b1b1b7';
+        edgeStyle.strokeWidth = 1;
+    }
+
+    return {
+      id: `e-${rel.from}-${rel.to}-${rel.type || ''}-${index}`,
+      source: String(rel.from),
+      target: String(rel.to),
+      label: rel.type,
+      style: edgeStyle,
+      markerEnd: edgeMarkerEnd,
+      animated: edgeAnimated,
+      type: 'default',
+    };
+  }), [relationships]);
+
+  const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
+    if (baseNodes.length === 0) {
+      return { nodes: [], edges: [] };
+    }
+    return getLayoutedElements(baseNodes, baseEdges, 'TB');
+  }, [baseNodes, baseEdges]);
 
   const handleAddMember = () => {
     if (!newMember.id || !newMember.name) {
@@ -117,122 +355,36 @@ export default function GenogramApp() {
     alert(`Downloading genogram as ${format}`);
   };
 
-  // Simple genogram rendering function - in a real app this would be more sophisticated
+  const nodeTypes = {
+    maleNode: MaleNode,
+    femaleNode: FemaleNode,
+    defaultNode: DefaultNode,
+  };
+
+  // Simple genogram rendering function 
   const renderGenogram = () => {
-    // This is a simplified visualization - a real implementation would use a proper
-    // hierarchical layout algorithm to position family members correctly
+    if (layoutedNodes.length === 0) {
+      return (
+        <div className="text-center text-gray-500 p-6 bg-white rounded-lg shadow">
+          Add family members to start building your genogram.
+        </div>
+      );
+    }
+              
     return (
-      <div className="bg-white p-6 rounded-lg shadow">
-        {familyMembers.length === 0 ? (
-          <div className="text-center text-gray-500">
-            Add family members to start building your genogram
-          </div>
-        ) : (
-          <svg width="100%" height="400" className="border border-gray-200 rounded">
-            {familyMembers.map((member, index) => {
-              const x = 100 + (index % 3) * 150;
-              const y = 80 + Math.floor(index / 3) * 120;
-              
-              return (
-                <g key={member.id}>
-                  {/* Symbol based on gender */}
-                  {member.gender === 'male' ? (
-                    <rect
-                      x={x - 25}
-                      y={y - 25}
-                      width="50"
-                      height="50"
-                      fill={member.deceased ? "white" : "#e3f2fd"}
-                      stroke="black"
-                      strokeWidth="2"
-                    />
-                  ) : (
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r="25"
-                      fill={member.deceased ? "white" : "#f8bbd0"}
-                      stroke="black"
-                      strokeWidth="2"
-                    />
-                  )}
-                  
-                  {/* Deceased marker (X) */}
-                  {member.deceased && (
-                    <>
-                      <line x1={x-20} y1={y-20} x2={x+20} y2={y+20} stroke="black" strokeWidth="2" />
-                      <line x1={x+20} y1={y-20} x2={x-20} y2={y+20} stroke="black" strokeWidth="2" />
-                    </>
-                  )}
-                  
-                  {/* Text label */}
-                  <text
-                    x={x}
-                    y={y + 50}
-                    textAnchor="middle"
-                    fontSize="12"
-                    fontFamily="sans-serif"
-                  >
-                    {member.name}
-                  </text>
-                  
-                  {/* Birth/Death years */}
-                  <text
-                    x={x}
-                    y={y + 65}
-                    textAnchor="middle"
-                    fontSize="10"
-                    fontFamily="sans-serif"
-                    fill="gray"
-                  >
-                    {member.birthYear}{member.deceased && member.deathYear ? `-${member.deathYear}` : ''}
-                  </text>
-                </g>
-              );
-            })}
-            
-            {/* Relationship lines */}
-            {relationships.map((rel, index) => {
-              const fromMember = familyMembers.findIndex(m => m.id === rel.from);
-              const toMember = familyMembers.findIndex(m => m.id === rel.to);
-              
-              if (fromMember === -1 || toMember === -1) return null;
-              
-              const fromX = 100 + (fromMember % 3) * 150;
-              const fromY = 80 + Math.floor(fromMember / 3) * 120;
-              const toX = 100 + (toMember % 3) * 150;
-              const toY = 80 + Math.floor(toMember / 3) * 120;
-              
-              let strokeStyle = "black";
-              let strokeWidth = 2;
-              let dashArray = "";
-              
-              if (rel.type === "married") {
-                strokeStyle = "black";
-                strokeWidth = 3;
-              } else if (rel.type === "divorced") {
-                strokeStyle = "black";
-                strokeWidth = 2;
-                dashArray = "5,5";
-              } else if (rel.type === "parent-child") {
-                strokeStyle = "blue";
-              }
-              
-              return (
-                <line
-                  key={`rel-${index}`}
-                  x1={fromX}
-                  y1={fromY}
-                  x2={toX}
-                  y2={toY}
-                  stroke={strokeStyle}
-                  strokeWidth={strokeWidth}
-                  strokeDasharray={dashArray}
-                />
-              );
-            })}
-          </svg>
-        )}
+      <div style={{ height: '600px', width: '100%' }} className="border border-gray-200 rounded bg-white shadow">
+        <ReactFlowProvider>
+          <XYFlow
+            nodes={layoutedNodes}
+            edges={layoutedEdges}
+            nodeTypes={nodeTypes}
+            fitView
+            attributionPosition="top-right"
+          >
+            <Background variant="dots" gap={12} size={1} />
+            <Controls />
+          </XYFlow>
+        </ReactFlowProvider>
       </div>
     );
   };
