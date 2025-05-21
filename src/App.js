@@ -3,6 +3,7 @@ import { Download, FileJson, FileUp, Trash2, Plus, X } from 'lucide-react';
 import { ReactFlow as XYFlow, ReactFlowProvider, Background, Controls, Handle, Position, MarkerType, applyNodeChanges } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import dagre from '@dagrejs/dagre';
+import { v4 as uuidv4 } from 'uuid';
 
 const NODE_WIDTH = 150; 
 const NODE_HEIGHT = 100; 
@@ -180,7 +181,7 @@ export default function GenogramApp() {
   const [familyMembers, setFamilyMembers] = useState([]);
   const [relationships, setRelationships] = useState([]);
   const [newMember, setNewMember] = useState({
-    id: '',
+    id: uuidv4(),
     name: '',
     gender: 'male',
     birthYear: '',
@@ -211,7 +212,7 @@ export default function GenogramApp() {
   })), [familyMembers]);
 
   // Base edges derived from relationships
-  const baseEdges = useMemo(() => relationships.map((rel, index) => {
+  const baseEdges = useMemo(() => relationships.map((rel) => {
     const edgeStyle = {};
     let edgeMarkerEnd;
     let edgeAnimated = false;
@@ -242,7 +243,7 @@ export default function GenogramApp() {
     }
 
     return {
-      id: `e-${rel.from}-${rel.to}-${rel.type || ''}-${index}`,
+      id: rel.id || uuidv4(),
       source: String(rel.from),
       target: String(rel.to),
       label: rel.type,
@@ -261,19 +262,20 @@ export default function GenogramApp() {
   }, [baseNodes, baseEdges]);
 
   const handleAddMember = () => {
-    if (!newMember.id || !newMember.name) {
-      setError('ID and Name are required fields');
+    if (!newMember.name) {
+      setError('Name is a required field');
       return;
     }
     
-    if (familyMembers.some(member => member.id === newMember.id)) {
-      setError('ID must be unique');
-      return;
-    }
+    // Generate a new ID for the next member
+    const newMemberWithId = {
+      ...newMember,
+      id: uuidv4()
+    };
     
-    setFamilyMembers([...familyMembers, newMember]);
+    setFamilyMembers([...familyMembers, newMemberWithId]);
     setNewMember({
-      id: '',
+      id: uuidv4(), // Pre-generate ID for the next member
       name: '',
       gender: 'male',
       birthYear: '',
@@ -309,7 +311,12 @@ export default function GenogramApp() {
       return;
     }
     
-    setRelationships([...relationships, newRelationship]);
+    // Add relationship with auto-generated ID
+    setRelationships([...relationships, {
+      ...newRelationship,
+      id: uuidv4()
+    }]);
+    
     setNewRelationship({
       from: '',
       to: '',
@@ -367,8 +374,14 @@ export default function GenogramApp() {
 
   // Update nodes and edges when layout changes
   useEffect(() => {
+    // Ensure all edges have IDs
+    const edgesWithIds = layoutedEdges.map(edge => ({
+      ...edge,
+      id: edge.id || uuidv4()
+    }));
+    
     setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
+    setEdges(edgesWithIds);
   }, [layoutedNodes, layoutedEdges]);
 
   const onNodesChange = useCallback(
@@ -444,17 +457,7 @@ export default function GenogramApp() {
             <div>
               <h2 className="text-lg font-medium mb-2">Add Family Member</h2>
               <div className="space-y-3 mb-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">ID</label>
-                    <input
-                      type="text"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      value={newMember.id}
-                      onChange={(e) => setNewMember({...newMember, id: e.target.value})}
-                      placeholder="e.g. father1"
-                    />
-                  </div>
+                <div className="grid grid-cols-1 gap-2">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Name</label>
                     <input
@@ -598,13 +601,13 @@ export default function GenogramApp() {
                 placeholder={`{
   "members": [
     {
-      "id": "father",
+      "id": "0a50b51f-5fd0",
       "name": "John Doe",
       "gender": "male",
       "birthYear": "1950"
     },
     {
-      "id": "mother",
+      "id": "1b21f31f-7kd1",
       "name": "Jane Doe",
       "gender": "female",
       "birthYear": "1952"
@@ -612,9 +615,10 @@ export default function GenogramApp() {
   ],
   "relationships": [
     {
-      "from": "father",
-      "to": "mother",
-      "type": "married"
+      "id": "9h00q41p-4md0",
+      "from": "John Doe",
+      "to": "Jane Doe",
+      "type": "Married"
     }
   ]
 }`}
@@ -712,6 +716,7 @@ export default function GenogramApp() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead>
                       <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">To</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
@@ -725,19 +730,15 @@ export default function GenogramApp() {
                         
                         return (
                           <tr key={index}>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                              {fromMember ? fromMember.name : rel.from}
-                            </td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                              {toMember ? toMember.name : rel.to}
-                            </td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 capitalize">
-                              {rel.type}
-                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{rel.id}</td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{fromMember ? fromMember.name : rel.from}</td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{toMember ? toMember.name : rel.to}</td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 capitalize">{rel.type}</td>
                             <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                               <button
                                 className="text-red-600 hover:text-red-900"
                                 onClick={() => handleDeleteRelationship(index)}
+                                title="Delete relationship"
                               >
                                 <Trash2 size={16} />
                               </button>
