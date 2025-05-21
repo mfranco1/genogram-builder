@@ -11,166 +11,283 @@ const NODE_HEIGHT = 100;
 const getLayoutedElements = (nodes, edges, direction = 'TB') => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 70 });
+  
+  // Use different spacing for different relationship types
+  dagreGraph.setGraph({ 
+    rankdir: direction, 
+    nodesep: 100,  // Increased horizontal spacing
+    ranksep: 120,  // Increased vertical spacing
+    ranker: 'tight-tree',
+    align: 'UL',
+    acyclicer: 'greedy',
+    ranker: 'network-simplex'
+  });
 
+  // Set nodes with their dimensions
   nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    dagreGraph.setNode(node.id, { 
+      width: 120,  // Slightly larger to accommodate new styling
+      height: 100 
+    });
   });
 
+  // Add edges with weights based on relationship type
   edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
+    const isParentChild = edge.type === 'parent' || edge.type === 'child';
+    const isMarried = edge.type === 'married';
+    const isDivorced = edge.type === 'divorced';
+    const isSiblings = edge.type === 'siblings';
+    
+    dagreGraph.setEdge(edge.source, edge.target, { 
+      weight: isParentChild ? 2 : 1,
+      minlen: isParentChild ? 2 : 1,
+      // Add relationship type as edge data
+      relationship: edge.type
+    });
   });
 
+  // Run the layout
   dagre.layout(dagreGraph);
+
+  // Position nodes
+  const getEdgeParams = (source, target) => {
+    const sourceNode = nodes.find(n => n.id === source);
+    const targetNode = nodes.find(n => n.id === target);
+    
+    // Default to center of nodes
+    const sourceX = sourceNode?.position?.x || 0;
+    const sourceY = sourceNode?.position?.y || 0;
+    const targetX = targetNode?.position?.x || 0;
+    const targetY = targetNode?.position?.y || 0;
+    
+    // Determine if this is a horizontal (sibling/marriage) or vertical (parent-child) relationship
+    const isHorizontal = Math.abs(sourceY - targetY) < 50; // Nodes are roughly at the same Y level
+    
+    return {
+      sourceX,
+      sourceY,
+      targetX,
+      targetY,
+      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+      targetPosition: isHorizontal ? Position.Left : Position.Top,
+      style: {
+        stroke: isHorizontal ? '#4f46e5' : '#10b981',
+        strokeWidth: 2,
+        strokeDasharray: isHorizontal ? '0' : '5,5'
+      },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: isHorizontal ? '#4f46e5' : '#10b981',
+        width: 20,
+        height: 20
+      }
+    };
+  };
 
   const layoutedNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
-    node.position = {
-      x: nodeWithPosition.x - NODE_WIDTH / 2,
-      y: nodeWithPosition.y - NODE_HEIGHT / 2,
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - 60,  // Center the node
+        y: nodeWithPosition.y - 50,
+      },
+      data: {
+        ...node.data,
+        // Add any additional node data here
+      }
     };
-    return node;
   });
 
-  return { nodes: layoutedNodes, edges };
+  const layoutedEdges = edges.map((edge) => {
+    const { sourceX, sourceY, targetX, targetY } = getEdgeParams(edge.source, edge.target);
+    const isParentChild = edge.type === 'parent' || edge.type === 'child';
+    const isMarried = edge.type === 'married';
+    const isDivorced = edge.type === 'divorced';
+    const isSiblings = edge.type === 'siblings';
+    
+    // Determine edge style based on relationship type
+    const edgeStyle = {
+      stroke: isParentChild ? '#10b981' : 
+             isMarried ? '#4f46e5' :
+             isDivorced ? '#ef4444' :
+             isSiblings ? '#8b5cf6' : '#9ca3af',
+      strokeWidth: 2,
+      strokeDasharray: isDivorced ? '5,3' : '0',
+    };
+
+    // Only add arrow for parent-child relationships
+    const markerEnd = isParentChild ? {
+      type: MarkerType.ArrowClosed,
+      color: '#10b981',
+      width: 15,
+      height: 15
+    } : undefined;
+
+    return {
+      ...edge,
+      type: 'smoothstep',
+      sourcePosition: isParentChild ? Position.Bottom : Position.Right,
+      targetPosition: isParentChild ? Position.Top : Position.Left,
+      style: edgeStyle,
+      markerEnd,
+      animated: true
+    };
+  });
+
+  return { 
+    nodes: layoutedNodes, 
+    edges: layoutedEdges
+  };
+};
+
+// Base node styles
+const baseNodeStyle = (data, shape) => ({
+  width: 100,
+  minHeight: 80,
+  backgroundColor: data.deceased ? '#f9fafb' : (data.gender === 'female' ? '#fce4ec' : data.gender === 'male' ? '#e3f2fd' : '#e8f5e9'),
+  border: `2px solid ${data.deceased ? '#9ca3af' : '#374151'}`,
+  borderRadius: shape === 'circle' ? '50%' : shape === 'square' ? '0' : '4px',
+  position: 'relative',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  textAlign: 'center',
+  padding: '8px',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  transition: 'all 0.2s ease-in-out',
+  '&:hover': {
+    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+    transform: 'translateY(-2px)'
+  },
+  '& .handle': {
+    opacity: 0,
+    transition: 'opacity 0.2s ease-in-out'
+  },
+  '&:hover .handle': {
+    opacity: 1
+  }
+});
+
+const handleStyle = {
+  width: 12,
+  height: 12,
+  borderRadius: '50%',
+  backgroundColor: '#4f46e5',
+  border: '2px solid white',
+  zIndex: 10,
+  cursor: 'crosshair',
+  boxShadow: '0 0 0 2px rgba(79, 70, 229, 0.3)'
 };
 
 // Custom Node for Male
 const MaleNode = ({ data }) => {
-  const nodeStyle = {
-    width: 50,
-    height: 50,
-    backgroundColor: data.deceased ? 'white' : '#e3f2fd',
-    border: '2px solid black',
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-  };
-  const textStyle = { fontSize: '10px', marginTop: '5px' };
-  const deceasedStyle = {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
+  const nodeStyle = baseNodeStyle(data, 'square');
+  
   return (
     <div style={nodeStyle}>
-      <Handle type="target" position={Position.Top} />
-      {data.deceased && (
-        <svg style={deceasedStyle} width="100%" height="100%" viewBox="0 0 50 50">
-          <line x1="10" y1="10" x2="40" y2="40" stroke="black" strokeWidth="2" />
-          <line x1="40" y1="10" x2="10" y2="40" stroke="black" strokeWidth="2" />
-        </svg>
-      )}
-      <div style={{ position: 'absolute', bottom: '-40px', width: '100px' }}>
-        <div style={textStyle}>{data.name}</div>
-        <div style={{ ...textStyle, fontSize: '8px', color: 'gray' }}>
-          {data.birthYear}{data.deceased && data.deathYear ? `-${data.deathYear}` : ''}
+      {/* Top handle */}
+      <Handle type="target" position={Position.Top} style={{ ...handleStyle, left: '50%' }} />
+      
+      {/* Left handle */}
+      <Handle type="source" position={Position.Left} style={{ ...handleStyle, top: '50%' }} />
+      
+      <div className="text-xs p-1">
+        <div className="font-medium text-gray-900">{data.name}</div>
+        <div className="text-gray-600">
+          {data.birthYear}{data.deathYear ? `-${data.deathYear}` : ''}
         </div>
+        {data.medicalConditions && (
+          <div className="mt-1 text-xs text-red-600">{data.medicalConditions}</div>
+        )}
       </div>
-      <Handle type="source" position={Position.Bottom} />
+      
+      {/* Right handle */}
+      <Handle type="source" position={Position.Right} style={{ ...handleStyle, top: '50%' }} />
+      
+      {/* Bottom handle */}
+      <Handle type="source" position={Position.Bottom} style={{ ...handleStyle, left: '50%' }} />
+      
+      {data.deceased && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-full h-0.5 bg-red-500 transform rotate-45 origin-center"></div>
+        </div>
+      )}
     </div>
   );
 };
 
 // Custom Node for Female
 const FemaleNode = ({ data }) => {
-  const nodeStyle = {
-    width: 50,
-    height: 50,
-    backgroundColor: data.deceased ? 'white' : '#f8bbd0',
-    border: '2px solid black',
-    borderRadius: '50%',
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-  };
-  const textStyle = { fontSize: '10px', marginTop: '5px' };
-   const deceasedStyle = {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
+  const nodeStyle = baseNodeStyle(data, 'circle');
+  
   return (
     <div style={nodeStyle}>
-      <Handle type="target" position={Position.Top} />
-      {data.deceased && (
-         <svg style={deceasedStyle} width="100%" height="100%" viewBox="0 0 50 50">
-          <line x1="10" y1="10" x2="40" y2="40" stroke="black" strokeWidth="2" />
-          <line x1="40" y1="10" x2="10" y2="40" stroke="black" strokeWidth="2" />
-        </svg>
-      )}
-      <div style={{ position: 'absolute', bottom: '-40px', width: '100px' }}>
-        <div style={textStyle}>{data.name}</div>
-        <div style={{ ...textStyle, fontSize: '8px', color: 'gray' }}>
-          {data.birthYear}{data.deceased && data.deathYear ? `-${data.deathYear}` : ''}
+      {/* Top handle */}
+      <Handle type="target" position={Position.Top} style={{ ...handleStyle, left: '50%' }} />
+      
+      {/* Left handle */}
+      <Handle type="source" position={Position.Left} style={{ ...handleStyle, top: '50%' }} />
+      
+      <div className="text-xs p-1">
+        <div className="font-medium text-gray-900">{data.name}</div>
+        <div className="text-gray-600">
+          {data.birthYear}{data.deathYear ? `-${data.deathYear}` : ''}
         </div>
+        {data.medicalConditions && (
+          <div className="mt-1 text-xs text-red-600">{data.medicalConditions}</div>
+        )}
       </div>
-      <Handle type="source" position={Position.Bottom} />
+      
+      {/* Right handle */}
+      <Handle type="source" position={Position.Right} style={{ ...handleStyle, top: '50%' }} />
+      
+      {/* Bottom handle */}
+      <Handle type="source" position={Position.Bottom} style={{ ...handleStyle, left: '50%' }} />
+      
+      {data.deceased && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-full h-0.5 bg-red-500 transform rotate-45 origin-center"></div>
+        </div>
+      )}
     </div>
   );
 };
 
 // Custom Node for Other/Default
 const DefaultNode = ({ data }) => {
-  const nodeStyle = {
-    width: 50,
-    height: 50,
-    backgroundColor: data.deceased ? 'white' : '#eeeeee',
-    border: '2px solid black',
-    borderRadius: '10px', // Rounded rectangle
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-  };
-  const textStyle = { fontSize: '10px', marginTop: '5px' };
-  const deceasedStyle = {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
+  const nodeStyle = baseNodeStyle(data, 'diamond');
+  
   return (
     <div style={nodeStyle}>
-      <Handle type="target" position={Position.Top} />
-      {data.deceased && (
-        <svg style={deceasedStyle} width="100%" height="100%" viewBox="0 0 50 50">
-          <line x1="10" y1="10" x2="40" y2="40" stroke="black" strokeWidth="2" />
-          <line x1="40" y1="10" x2="10" y2="40" stroke="black" strokeWidth="2" />
-        </svg>
-      )}
-      <div style={{ position: 'absolute', bottom: '-40px', width: '100px' }}>
-        <div style={textStyle}>{data.name}</div>
-        <div style={{ ...textStyle, fontSize: '8px', color: 'gray' }}>
-          {data.birthYear}{data.deceased && data.deathYear ? `-${data.deathYear}` : ''}
+      {/* Top handle */}
+      <Handle type="target" position={Position.Top} style={{ ...handleStyle, left: '50%' }} />
+      
+      {/* Left handle */}
+      <Handle type="source" position={Position.Left} style={{ ...handleStyle, top: '50%' }} />
+      
+      <div className="text-xs p-1">
+        <div className="font-medium text-gray-900">{data.name}</div>
+        <div className="text-gray-600">
+          {data.birthYear}{data.deathYear ? `-${data.deathYear}` : ''}
         </div>
+        {data.medicalConditions && (
+          <div className="mt-1 text-xs text-red-600">{data.medicalConditions}</div>
+        )}
       </div>
-      <Handle type="source" position={Position.Bottom} />
+      
+      {/* Right handle */}
+      <Handle type="source" position={Position.Right} style={{ ...handleStyle, top: '50%' }} />
+      
+      {/* Bottom handle */}
+      <Handle type="source" position={Position.Bottom} style={{ ...handleStyle, left: '50%' }} />
+      
+      {data.deceased && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-full h-0.5 bg-red-500 transform rotate-45 origin-center"></div>
+        </div>
+      )}
     </div>
   );
 };
