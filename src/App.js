@@ -184,9 +184,9 @@ export default function GenogramApp() {
     id: uuidv4(),
     name: '',
     gender: 'male',
-    birthYear: '',
+    birthDate: '',
     deceased: false,
-    deathYear: '',
+    deathDate: '',
     medicalConditions: '',
   });
   const [newRelationship, setNewRelationship] = useState({
@@ -202,9 +202,9 @@ export default function GenogramApp() {
     data: { 
       name: member.name, 
       gender: member.gender, 
-      birthYear: member.birthYear, 
+      birthYear: member.birthDate ? new Date(member.birthDate).getFullYear() : member.birthYear, 
       deceased: member.deceased, 
-      deathYear: member.deathYear, 
+      deathYear: member.deathDate ? new Date(member.deathDate).getFullYear() : member.deathYear, 
       medicalConditions: member.medicalConditions 
     },
     type: member.gender === 'male' ? 'maleNode' : member.gender === 'female' ? 'femaleNode' : 'defaultNode',
@@ -270,7 +270,9 @@ export default function GenogramApp() {
     // Generate a new ID for the next member
     const newMemberWithId = {
       ...newMember,
-      id: uuidv4()
+      id: uuidv4(),
+      // Extract year from birthDate for backward compatibility
+      birthYear: newMember.birthDate ? new Date(newMember.birthDate).getFullYear().toString() : ''
     };
     
     setFamilyMembers([...familyMembers, newMemberWithId]);
@@ -278,9 +280,9 @@ export default function GenogramApp() {
       id: uuidv4(), // Pre-generate ID for the next member
       name: '',
       gender: 'male',
-      birthYear: '',
+      birthDate: '',
       deceased: false,
-      deathYear: '',
+      deathDate: '',
       medicalConditions: '',
     });
     setError('');
@@ -484,13 +486,13 @@ export default function GenogramApp() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Birth Year</label>
+                    <label className="block text-sm font-medium text-gray-700">Birth Date</label>
                     <input
-                      type="number"
+                      type="date"
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      value={newMember.birthYear}
-                      onChange={(e) => setNewMember({...newMember, birthYear: e.target.value})}
-                      placeholder="1980"
+                      value={newMember.birthDate || ''}
+                      onChange={(e) => setNewMember({...newMember, birthDate: e.target.value})}
+                      max={new Date().toISOString().split('T')[0]}
                     />
                   </div>
                 </div>
@@ -506,13 +508,14 @@ export default function GenogramApp() {
                   
                   {newMember.deceased && (
                     <div className="ml-4">
-                      <label className="block text-sm text-gray-700">Death Year</label>
+                      <label className="block text-sm text-gray-700">Death Date</label>
                       <input
-                        type="number"
+                        type="date"
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                        value={newMember.deathYear}
-                        onChange={(e) => setNewMember({...newMember, deathYear: e.target.value})}
-                        placeholder="2020"
+                        value={newMember.deathDate || ''}
+                        onChange={(e) => setNewMember({...newMember, deathDate: e.target.value})}
+                        min={newMember.birthDate || ''}
+                        max={new Date().toISOString().split('T')[0]}
                       />
                     </div>
                   )}
@@ -604,13 +607,13 @@ export default function GenogramApp() {
       "id": "0a50b51f-5fd0",
       "name": "John Doe",
       "gender": "male",
-      "birthYear": "1950"
+      "birthDate": "1950-01-01"
     },
     {
       "id": "1b21f31f-7kd1",
       "name": "Jane Doe",
       "gender": "female",
-      "birthYear": "1952"
+      "birthDate": "1952-01-01"
     }
   ],
   "relationships": [
