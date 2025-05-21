@@ -558,8 +558,8 @@ export default function GenogramApp() {
   return (
     <div className="max-w-6xl mx-auto p-4">
       <div className="bg-blue-700 text-white p-4 rounded-t-lg">
-        <h1 className="text-2xl font-bold">Family Genogram Generator</h1>
-        <p className="text-sm">For family medicine practitioners</p>
+        <h1 className="text-2xl font-bold">Family Genogram Builder</h1>
+        <p className="text-sm">For Family Medicine Practitioners</p>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-b-lg shadow">
