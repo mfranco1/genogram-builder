@@ -2,25 +2,21 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Download } from 'lucide-react'; // Kept for PDF/PNG download buttons
 import { applyNodeChanges, MarkerType } from '@xyflow/react'; // MarkerType might be needed by baseEdges
 import '@xyflow/react/dist/style.css';
-import { v4 as uuidv4 } from 'uuid'; // Still needed for baseEdges if rel.id is missing
+import { v4 as uuidv4 } from 'uuid';
 
-// Custom Hook
 import { useGenogramState } from './hooks/useGenogramState.tsx';
-// Utility Functions
 import { getLayoutedElements } from './utils/layout.tsx'; 
 
-// Node Components
 import MaleNode from './components/nodes/MaleNode.tsx';
 import FemaleNode from './components/nodes/FemaleNode.tsx';
 import DefaultNode from './components/nodes/DefaultNode.tsx';
 
-// UI Components
 import GenogramForm from './components/form/GenogramForm.tsx';
 import JsonInput from './components/json/JsonInput.tsx';
 import GenogramDisplay from './components/display/GenogramDisplay.tsx';
 import FamilyMembersTable from './components/tables/FamilyMembersTable.tsx';
 import RelationshipsTable from './components/tables/RelationshipsTable.tsx';
-import RelationshipModal from './components/modal/RelationshipModal.tsx'; // Import RelationshipModal
+import RelationshipModal from './components/modal/RelationshipModal.tsx';
 
 // Constants for layout - can remain or be moved to layout.js if preferred
 // const NODE_WIDTH = 150; 
@@ -205,7 +201,7 @@ export default function GenogramApp() {
   // Ensure oldEdge.id, newConnection.source, and newConnection.target are valid
   if (!oldEdge || !oldEdge.id || !newConnection || !newConnection.source || !newConnection.target) {
     console.error("Invalid edge transfer data received.", { oldEdge, newConnection });
-    setError("Invalid data for edge transfer."); // Set an error message
+    setError("Invalid data for edge transfer.");
     return; 
   }
 
@@ -314,9 +310,9 @@ export default function GenogramApp() {
               edges={edges} 
               nodeTypes={nodeTypes} 
               onNodesChange={onNodesChange}
-              onConnect={handleOpenCreateRelationshipModal} // Pass onConnect handler
-              onEdgeEdit={handleOpenEditRelationshipModal}  // Pass onEdgeEdit handler
-              onEdgeTransfer={handleEdgeTransfer} // Pass onEdgeTransfer handler
+              onConnect={handleOpenCreateRelationshipModal}
+              onEdgeEdit={handleOpenEditRelationshipModal}
+              onEdgeTransfer={handleEdgeTransfer}
             />
           </div>
           
