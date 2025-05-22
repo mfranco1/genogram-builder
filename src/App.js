@@ -347,7 +347,7 @@ export default function GenogramApp() {
           relationshipData={modalMode === 'edit' ? currentRelationshipDetails : undefined}
           sourceNodeId={modalMode === 'create' ? currentRelationshipDetails?.from : undefined}
           targetNodeId={modalMode === 'create' ? currentRelationshipDetails?.to : undefined}
-          // familyMembers={familyMembers} // Optional: for displaying names
+          familyMembers={familyMembers}
         />
       )}
     </div>

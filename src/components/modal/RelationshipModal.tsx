@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X, User, Link2 } from 'lucide-react';
 
 interface FamilyMember {
   id: string;
@@ -17,10 +18,17 @@ interface RelationshipModalProps {
   onClose: () => void;
   onSubmit: (data: { type: string; from: string; to: string }) => void;
   relationshipData?: { id?: string; type: string; from: string; to: string };
-  sourceNodeId?: string; // For new relationships
-  targetNodeId?: string; // For new relationships
-  familyMembers: FamilyMember[]; // For displaying names
+  sourceNodeId?: string;
+  targetNodeId?: string;
+  familyMembers: FamilyMember[];
 }
+
+const relationshipTypes = [
+  { value: 'parent-child', label: 'Parent-Child' },
+  { value: 'married', label: 'Married' },
+  { value: 'divorced', label: 'Divorced' },
+  { value: 'siblings', label: 'Siblings' },
+];
 
 const RelationshipModal: React.FC<RelationshipModalProps> = ({
   isOpen,
@@ -31,14 +39,13 @@ const RelationshipModal: React.FC<RelationshipModalProps> = ({
   targetNodeId,
   familyMembers
 }) => {
-  const [type, setType] = useState('parent-child'); // Default type
+  const [type, setType] = useState('parent-child');
 
   useEffect(() => {
     if (isOpen) {
       if (relationshipData) {
         setType(relationshipData.type);
       } else {
-        // Reset to default for new relationships
         setType('parent-child');
       }
     }
@@ -53,53 +60,101 @@ const RelationshipModal: React.FC<RelationshipModalProps> = ({
       onSubmit({ type, from: fromId, to: toId });
     } else {
       console.error("Source or target ID is missing");
-      // Optionally, show an error to the user in the modal
     }
   };
-  
-  // const getMemberName = (id) => familyMembers.find(m => m.id === id)?.name || id;
+
+  const getMemberName = (id: string) => {
+    return familyMembers.find(m => m.id === id)?.name || 'Unknown Member';
+  };
+
+  const fromId = relationshipData?.from || sourceNodeId || '';
+  const toId = relationshipData?.to || targetNodeId || '';
+  const fromName = fromId ? getMemberName(fromId) : 'N/A';
+  const toName = toId ? getMemberName(toId) : 'N/A';
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h2 className="text-xl font-semibold mb-4">
-          {relationshipData ? 'Edit Relationship' : 'Create Relationship'}
-        </h2>
-        
-        <div className="mb-4">
-          <p><span className="font-semibold">From:</span> {familyMembers.find(m => m.id === (relationshipData?.from || sourceNodeId))?.name || relationshipData?.from || sourceNodeId || 'N/A'}</p>
-          <p><span className="font-semibold">To:</span> {familyMembers.find(m => m.id === (relationshipData?.to || targetNodeId))?.name || relationshipData?.to || targetNodeId || 'N/A'}</p>
-        </div>
-
-        <div className="mb-4">
-          <label htmlFor="relationshipType" className="block text-sm font-medium text-gray-700 mb-1">
-            Relationship Type
-          </label>
-          <select
-            id="relationshipType"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-          >
-            <option value="parent-child">Parent-Child</option>
-            <option value="married">Married</option>
-            <option value="divorced">Divorced</option>
-            <option value="siblings">Siblings</option>
-          </select>
-        </div>
-
-        <div className="flex justify-end space-x-3">
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 overflow-y-auto h-full w-full flex justify-center items-start pt-16">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md transform transition-all duration-200 ease-in-out">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
+          <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+            <Link2 className="w-5 h-5 mr-2 text-indigo-600" />
+            {relationshipData ? 'Edit Relationship' : 'Create New Relationship'}
+          </h2>
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md p-1"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        {/* Body */}
+        <div className="p-6 space-y-6">
+          {/* Connection Preview */}
+          <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 text-center">
+                <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+                  <User className="w-6 h-6 mx-auto text-indigo-600 mb-1" />
+                  <p className="font-medium text-gray-800 truncate">{fromName}</p>
+                  <p className="text-xs text-gray-500 mt-1">Source</p>
+                </div>
+              </div>
+              
+              <div className="px-4 flex flex-col items-center">
+                <div className="h-0.5 w-8 bg-indigo-300 my-2"></div>
+                <span className="text-xs text-indigo-500 font-medium">
+                  {relationshipTypes.find(rt => rt.value === type)?.label}
+                </span>
+                <div className="h-0.5 w-8 bg-indigo-300 my-2"></div>
+              </div>
+              
+              <div className="flex-1 text-center">
+                <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+                  <User className="w-6 h-6 mx-auto text-indigo-600 mb-1" />
+                  <p className="font-medium text-gray-800 truncate">{toName}</p>
+                  <p className="text-xs text-gray-500 mt-1">Target</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Relationship Type Selector */}
+          <div>
+            <label htmlFor="relationshipType" className="block text-sm font-medium text-gray-700 mb-2">
+              Relationship Type
+            </label>
+            <select
+              id="relationshipType"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 rounded-lg transition-colors duration-150"
+            >
+              {relationshipTypes.map((rt) => (
+                <option key={rt.value} value={rt.value}>
+                  {rt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-150"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSubmit}
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-150"
           >
-            Save
+            {relationshipData ? 'Update' : 'Create'} Relationship
           </button>
         </div>
       </div>
