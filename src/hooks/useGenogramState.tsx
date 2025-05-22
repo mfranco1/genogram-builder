@@ -1,10 +1,29 @@
 import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+interface FamilyMember {
+  id: string;
+  name: string;
+  gender: 'male' | 'female' | 'other';
+  birthDate: string;
+  birthYear?: string;
+  deceased: boolean;
+  deathDate: string;
+  medicalConditions: string;
+}
+
+interface Relationship {
+  id: string;
+  from: string;
+  to: string;
+  type: string;
+}
+
+
 export const useGenogramState = () => {
   const [jsonInput, setJsonInput] = useState('');
-  const [familyMembers, setFamilyMembers] = useState([]);
-  const [relationships, setRelationships] = useState([]);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [newMember, setNewMember] = useState({
     id: uuidv4(),
     name: '',
@@ -27,9 +46,10 @@ export const useGenogramState = () => {
       return;
     }
     
-    const newMemberWithId = {
+    const newMemberWithId: FamilyMember = {
       ...newMember,
       id: uuidv4(),
+      gender: newMember.gender as 'male' | 'female' | 'other',
       birthYear: newMember.birthDate ? new Date(newMember.birthDate).getFullYear().toString() : ''
     };
     
@@ -153,37 +173,58 @@ export const useGenogramState = () => {
   };
 
   const addRelationshipFromModal = (relationData: { from: string; to: string; type: string }) => {
-    const { from, to, type } = relationData;
+    try {
+      console.log('addRelationshipFromModal called with:', relationData);
+      const { from, to, type } = relationData;
 
-    if (!from || !to) {
-      setError('Both source and target nodes must be provided for a relationship.');
-      return false; 
-    }
+      if (!from || !to) {
+        const errorMsg = 'Both source and target nodes must be provided for a relationship.';
+        console.error(errorMsg);
+        setError(errorMsg);
+        return false; 
+      }
 
-    if (from === to) {
-      setError('Cannot create a relationship with the same person.');
+
+      if (from === to) {
+        const errorMsg = 'Cannot create a relationship with the same person.';
+        console.error(errorMsg);
+        setError(errorMsg);
+        return false;
+      }
+
+      // Check for existing relationship in both directions
+      const relationshipExists = relationships.some(
+        rel => (rel.from === from && rel.to === to && rel.type === type) ||
+              (rel.from === to && rel.to === from && rel.type === type)
+      );
+
+      if (relationshipExists) {
+        const errorMsg = 'This relationship already exists.';
+        console.error(errorMsg);
+        setError(errorMsg);
+        return false;
+      }
+
+      const newRel = {
+        id: uuidv4(), 
+        from,
+        to,
+        type,
+      };
+
+      console.log('Adding new relationship:', newRel);
+      setRelationships(prevRelationships => {
+        const updated = [...prevRelationships, newRel];
+        console.log('Updated relationships:', updated);
+        return updated;
+      });
+      setError('');
+      return true; 
+    } catch (error) {
+      console.error('Error in addRelationshipFromModal:', error);
+      setError('An error occurred while creating the relationship.');
       return false;
     }
-
-    const relationshipExists = relationships.some(
-      rel => rel.from === from && rel.to === to && rel.type === type
-    );
-
-    if (relationshipExists) {
-      setError('This relationship already exists.');
-      return false;
-    }
-
-    const newRel = {
-      id: uuidv4(), 
-      from,
-      to,
-      type,
-    };
-
-    setRelationships(prevRelationships => [...prevRelationships, newRel]);
-    setError('');
-    return true; 
   };
 
   const updateRelationship = (relationshipId: string, updatedData: { type?: string; from?: string; to?: string }) => {

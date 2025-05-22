@@ -113,13 +113,25 @@ export default function GenogramApp() {
 
   // Modal Handler Functions
   const handleOpenCreateRelationshipModal = useCallback((params) => {
-    setError(''); // Clear previous errors
-    setCurrentRelationshipDetails({ from: params.source, to: params.target });
+    console.log('Opening create relationship modal with params:', params);
     setModalMode('create');
+    setCurrentRelationshipDetails({ 
+      from: params.source, 
+      to: params.target,
+      sourceHandle: params.sourceHandle,
+      targetHandle: params.targetHandle,
+      type: 'parent-child' // Default type
+    });
+    setError('');
     setIsRelationshipModalOpen(true);
+    
+    // Return false to prevent the default connection behavior
+    // since we'll handle it in the modal submission
+    return false;
   }, [setError]);
 
   const handleOpenEditRelationshipModal = useCallback((edge) => {
+    console.log('Opening edit relationship modal with edge:', edge);
     setError(''); // Clear previous errors
     setCurrentRelationshipDetails({ 
       id: edge.id, 
@@ -132,28 +144,53 @@ export default function GenogramApp() {
   }, [setError]);
 
   const handleCloseRelationshipModal = useCallback(() => {
+    // Reset all modal-related states
     setIsRelationshipModalOpen(false);
     setCurrentRelationshipDetails(null);
-    // setError(''); // Optionally clear error when modal is explicitly closed by user
+    setModalMode('create'); // Reset to default mode
+    setError(''); // Clear any errors
   }, []);
 
-  const handleRelationshipModalSubmit = useCallback((data) => {
-    let success = false;
-    if (modalMode === 'create') {
-      success = addRelationshipFromModal({ 
-        from: data.from, 
-        to: data.to, 
-        type: data.type 
-      });
-    } else if (modalMode === 'edit' && currentRelationshipDetails?.id) {
-      success = updateRelationship(currentRelationshipDetails.id, data);
+  const handleRelationshipModalSubmit = useCallback(async (data) => {
+    if (!data) {
+      console.error('No data provided to handleRelationshipModalSubmit');
+      throw new Error('No data provided for relationship');
     }
+    
+    console.log('Submitting relationship data:', data, 'Modal mode:', modalMode);
+    
+    // Ensure modalMode is valid
+    if (modalMode !== 'create' && modalMode !== 'edit') {
+      const errorMsg = `Invalid modal mode: ${modalMode}. Expected 'create' or 'edit'.`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+    
+    try {
+      let success = false;
+      
+      if (modalMode === 'create') {
+        console.log('Creating new relationship with data:', data);
+        success = await Promise.resolve(addRelationshipFromModal(data));
+      } else if (modalMode === 'edit') {
+        if (!currentRelationshipDetails?.id) {
+          throw new Error('Cannot edit relationship: missing relationship ID');
+        }
+        console.log('Updating relationship with ID:', currentRelationshipDetails.id, 'data:', data);
+        success = await Promise.resolve(updateRelationship(currentRelationshipDetails.id, data));
+      }
 
-    if (success) {
+      if (!success) {
+        throw new Error('Failed to save relationship. Please check the data and try again.');
+      }
+      
+      console.log('Relationship operation successful, closing modal');
       handleCloseRelationshipModal();
+      return true;
+    } catch (error) {
+      console.error('Error in handleRelationshipModalSubmit:', error);
+      throw error; // Re-throw to be caught by the modal's error handling
     }
-    // If not successful, an error is expected to be set by hook functions.
-    // The modal remains open, allowing the user to see the error.
   }, [modalMode, currentRelationshipDetails, addRelationshipFromModal, updateRelationship, handleCloseRelationshipModal]);
 
   const handleEdgeTransfer = useCallback((oldEdge, newConnection) => {

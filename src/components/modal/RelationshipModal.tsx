@@ -17,7 +17,12 @@ interface RelationshipModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: { type: string; from: string; to: string }) => void;
-  relationshipData?: { id?: string; type: string; from: string; to: string };
+  relationshipData?: {
+    id?: string;
+    type: string;
+    from: string;
+    to: string;
+  };
   sourceNodeId?: string;
   targetNodeId?: string;
   familyMembers: FamilyMember[];
@@ -40,12 +45,17 @@ const RelationshipModal: React.FC<RelationshipModalProps> = ({
   familyMembers
 }) => {
   const [type, setType] = useState('parent-child');
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      if (relationshipData) {
-        setType(relationshipData.type);
+      // Reset the form when opening the modal
+      setFormError('');
+      if (relationshipData?.id) {
+        // Edit mode - use the existing relationship type
+        setType(relationshipData.type || 'parent-child');
       } else {
+        // Create mode - use default type
         setType('parent-child');
       }
     }
@@ -53,18 +63,55 @@ const RelationshipModal: React.FC<RelationshipModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
-    const fromId = relationshipData?.from || sourceNodeId;
-    const toId = relationshipData?.to || targetNodeId;
-    if (fromId && toId) {
-      onSubmit({ type, from: fromId, to: toId });
-    } else {
-      console.error("Source or target ID is missing");
+  const handleSubmit = async () => {
+    const fromId = relationshipData?.from || sourceNodeId || '';
+    const toId = relationshipData?.to || targetNodeId || '';
+    const isEditMode = !!(relationshipData && relationshipData.id);
+    
+    console.log(`Submitting ${isEditMode ? 'edit' : 'create'} relationship:`, { 
+      fromId, 
+      toId, 
+      type,
+      isEditMode 
+    });
+    
+    // Reset any previous errors
+    setFormError('');
+    
+    // Validate source and target IDs
+    if (!fromId || !toId) {
+      const missingField = !fromId && !toId ? 'Source and target' : !fromId ? 'Source' : 'Target';
+      const errorMsg = `${missingField} ID is missing`;
+      console.error(errorMsg);
+      setFormError(errorMsg);
+      return;
+    }
+    
+    if (fromId === toId) {
+      const errorMsg = 'Cannot create a relationship with the same person';
+      console.error(errorMsg);
+      setFormError(errorMsg);
+      return;
+    }
+    
+    try {
+      // Call the onSubmit prop which might be async
+      await Promise.resolve(onSubmit({ 
+        type: type || 'parent-child',
+        from: fromId, 
+        to: toId 
+      }));
+    } catch (error) {
+      const action = isEditMode ? 'updating' : 'creating';
+      const errorMsg = error instanceof Error ? error.message : `Error ${action} relationship`;
+      console.error(`Error ${action} relationship:`, error);
+      setFormError(errorMsg);
     }
   };
-
+  
   const getMemberName = (id: string) => {
-    return familyMembers.find(m => m.id === id)?.name || 'Unknown Member';
+    const member = familyMembers.find(m => m.id === id);
+    return member ? member.name : `Member ${id}`;
   };
 
   const fromId = relationshipData?.from || sourceNodeId || '';
@@ -77,10 +124,22 @@ const RelationshipModal: React.FC<RelationshipModalProps> = ({
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-md transform transition-all duration-200 ease-in-out">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
-          <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-            <Link2 className="w-5 h-5 mr-2 text-indigo-600" />
-            {relationshipData ? 'Edit Relationship' : 'Create New Relationship'}
-          </h2>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+              <Link2 className="w-5 h-5 mr-2 text-indigo-600" />
+              {relationshipData && relationshipData.id ? 'Edit Relationship' : 'Create New Relationship'}
+            </h2>
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center space-x-2">
+                <User size={14} className="text-gray-500" />
+                <span className="text-xs font-medium text-gray-600">From: {getMemberName(relationshipData?.from || sourceNodeId || '')}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <User size={14} className="text-gray-500" />
+                <span className="text-xs font-medium text-gray-600">To: {getMemberName(relationshipData?.to || targetNodeId || '')}</span>
+              </div>
+            </div>
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md p-1"
@@ -91,6 +150,11 @@ const RelationshipModal: React.FC<RelationshipModalProps> = ({
         
         {/* Body */}
         <div className="p-6 space-y-6">
+          {formError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded">
+              {formError}
+            </div>
+          )}
           {/* Connection Preview */}
           <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
             <div className="flex items-center justify-between">
@@ -154,7 +218,7 @@ const RelationshipModal: React.FC<RelationshipModalProps> = ({
             onClick={handleSubmit}
             className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-150"
           >
-            {relationshipData ? 'Update' : 'Create'} Relationship
+            {relationshipData && relationshipData.id ? 'Update' : 'Create'} Relationship
           </button>
         </div>
       </div>
