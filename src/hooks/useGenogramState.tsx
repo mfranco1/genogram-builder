@@ -152,6 +152,92 @@ export const useGenogramState = () => {
     return JSON.stringify(data, null, 2);
   };
 
+  const addRelationshipFromModal = (relationData: { from: string; to: string; type: string }) => {
+    const { from, to, type } = relationData;
+
+    if (!from || !to) {
+      setError('Both source and target nodes must be provided for a relationship.');
+      return false; 
+    }
+
+    if (from === to) {
+      setError('Cannot create a relationship with the same person.');
+      return false;
+    }
+
+    const relationshipExists = relationships.some(
+      rel => rel.from === from && rel.to === to && rel.type === type
+    );
+
+    if (relationshipExists) {
+      setError('This relationship already exists.');
+      return false;
+    }
+
+    const newRel = {
+      id: uuidv4(), 
+      from,
+      to,
+      type,
+    };
+
+    setRelationships(prevRelationships => [...prevRelationships, newRel]);
+    setError('');
+    return true; 
+  };
+
+  const updateRelationship = (relationshipId: string, updatedData: { type?: string; from?: string; to?: string }) => {
+    if (!relationshipId) {
+      setError('Relationship ID is required for an update.');
+      return false;
+    }
+  
+    const relationshipsCopy = [...relationships];
+    const relationshipIndex = relationshipsCopy.findIndex(rel => rel.id === relationshipId);
+  
+    if (relationshipIndex === -1) {
+      setError('Relationship not found for update.');
+      return false;
+    }
+  
+    const currentRelationship = relationshipsCopy[relationshipIndex];
+    
+    // Determine the values to be used for validation and update
+    // If a value is not in updatedData, use the current value
+    const newFrom = updatedData.from !== undefined ? updatedData.from : currentRelationship.from;
+    const newTo = updatedData.to !== undefined ? updatedData.to : currentRelationship.to;
+    const newType = updatedData.type !== undefined ? updatedData.type : currentRelationship.type;
+  
+    // Validate 'from' and 'to' if they are being updated or are part of current data
+    if (newFrom === newTo) {
+      setError('Cannot form a relationship with the same person.');
+      return false;
+    }
+  
+    // Check for duplicates based on the new combination of from, to, and type
+    const duplicateExists = relationshipsCopy.some((rel, index) => {
+      if (index === relationshipIndex) return false; // Don't compare with itself
+      return rel.from === newFrom && rel.to === newTo && rel.type === newType;
+    });
+  
+    if (duplicateExists) {
+      setError('Another relationship with the same members and type already exists.');
+      return false;
+    }
+  
+    // Apply updates: Merge current relationship with updatedData fields
+    // Only fields present in updatedData will overwrite currentRelationship fields.
+    const updatedRel = {
+      ...currentRelationship,
+      ...updatedData, // This will selectively update fields present in updatedData
+    };
+    
+    relationshipsCopy[relationshipIndex] = updatedRel;
+    setRelationships(relationshipsCopy);
+    setError('');
+    return true;
+  };
+
   return {
     jsonInput,
     setJsonInput,
@@ -171,5 +257,7 @@ export const useGenogramState = () => {
     handleDeleteRelationship,
     handleJsonApply,
     exportData,
+    addRelationshipFromModal,
+    updateRelationship, // Add the new function here
   };
 };

@@ -20,6 +20,7 @@ import JsonInput from './components/json/JsonInput.tsx';
 import GenogramDisplay from './components/display/GenogramDisplay.tsx';
 import FamilyMembersTable from './components/tables/FamilyMembersTable.tsx';
 import RelationshipsTable from './components/tables/RelationshipsTable.tsx';
+import RelationshipModal from './components/modal/RelationshipModal.tsx'; // Import RelationshipModal
 
 // Constants for layout - can remain or be moved to layout.js if preferred
 // const NODE_WIDTH = 150; 
@@ -27,6 +28,11 @@ import RelationshipsTable from './components/tables/RelationshipsTable.tsx';
 
 export default function GenogramApp() {
   const [activeTab, setActiveTab] = useState('form');
+  
+  // State for RelationshipModal
+  const [isRelationshipModalOpen, setIsRelationshipModalOpen] = useState(false);
+  const [currentRelationshipDetails, setCurrentRelationshipDetails] = useState(null);
+  const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
     
   const {
     familyMembers, setFamilyMembers,
@@ -37,10 +43,12 @@ export default function GenogramApp() {
     jsonInput, setJsonInput,
     handleAddMember,
     handleDeleteMember,
-    handleAddRelationship,
+    handleAddRelationship, // This is the old one, might be removed if modal replaces its direct use
     handleDeleteRelationship,
     handleJsonApply,
-    exportData
+    exportData,
+    addRelationshipFromModal, // Ensure this is destructured
+    updateRelationship // Destructure updateRelationship
   } = useGenogramState();
 
   // Node types for React Flow
@@ -140,6 +148,85 @@ export default function GenogramApp() {
     [setNodes] // setNodes is stable, so this is fine.
   );
 
+  // Modal Handler Functions
+  const handleOpenCreateRelationshipModal = useCallback((params) => {
+    setError(''); // Clear previous errors
+    setCurrentRelationshipDetails({ from: params.source, to: params.target });
+    setModalMode('create');
+    setIsRelationshipModalOpen(true);
+  }, [setError]);
+
+  const handleOpenEditRelationshipModal = useCallback((edge) => {
+    setError(''); // Clear previous errors
+    setCurrentRelationshipDetails({ 
+      id: edge.id, 
+      from: edge.source, 
+      to: edge.target, 
+      type: edge.label || edge.type 
+    });
+    setModalMode('edit');
+    setIsRelationshipModalOpen(true);
+  }, [setError]);
+
+  const handleCloseRelationshipModal = useCallback(() => {
+    setIsRelationshipModalOpen(false);
+    setCurrentRelationshipDetails(null);
+    // setError(''); // Optionally clear error when modal is explicitly closed by user
+  }, []);
+
+  const handleRelationshipModalSubmit = useCallback((data) => {
+    let success = false;
+    if (modalMode === 'create') {
+      success = addRelationshipFromModal({ 
+        from: data.from, 
+        to: data.to, 
+        type: data.type 
+      });
+    } else if (modalMode === 'edit' && currentRelationshipDetails?.id) {
+      success = updateRelationship(currentRelationshipDetails.id, data);
+    }
+
+    if (success) {
+      handleCloseRelationshipModal();
+    }
+    // If not successful, an error is expected to be set by hook functions.
+    // The modal remains open, allowing the user to see the error.
+  }, [modalMode, currentRelationshipDetails, addRelationshipFromModal, updateRelationship, handleCloseRelationshipModal]);
+
+  const handleEdgeTransfer = useCallback((oldEdge, newConnection) => {
+    console.log(
+      `Edge transfer attempt: Edge ID ${oldEdge.id} from ${oldEdge.source}->${oldEdge.target} to ${newConnection.source}->${newConnection.target}`
+    );
+    // Actual update logic will be added in a subsequent step using a function from useGenogramState.
+    // For now, React Flow will visually update the edge, but this change won't persist in our state
+    // until the useGenogramState hook's function is called and `relationships` are updated,
+    // which will then trigger a re-render with the correct edges.
+
+  // Ensure oldEdge.id, newConnection.source, and newConnection.target are valid
+  if (!oldEdge || !oldEdge.id || !newConnection || !newConnection.source || !newConnection.target) {
+    console.error("Invalid edge transfer data received.", { oldEdge, newConnection });
+    setError("Invalid data for edge transfer."); // Set an error message
+    return; 
+  }
+
+  const success = updateRelationship(oldEdge.id, { 
+    from: newConnection.source, 
+    to: newConnection.target 
+  });
+
+  if (success) {
+    console.log(`Edge ${oldEdge.id} successfully transferred.`);
+    // The visual update will occur when relationships state changes,
+    // triggering re-layout and re-render of GenogramDisplay.
+    setError(''); // Clear any previous errors on success
+  } else {
+    console.warn(`Failed to transfer edge ${oldEdge.id}. Error should be displayed.`);
+    // Error is set by updateRelationship and displayed by App's error display logic.
+    // ReactFlow should ideally revert the edge if the update is not confirmed by a change in the `edges` prop.
+  }
+}, [updateRelationship, setError]); // Added setError to dependency array
+
+
   // Function for downloading genogram (PDF/PNG) - kept as per instructions
   const downloadGenogram = (format) => {
     alert(`Downloading genogram as ${format}`);
@@ -226,7 +313,10 @@ export default function GenogramApp() {
               nodes={nodes} 
               edges={edges} 
               nodeTypes={nodeTypes} 
-              onNodesChange={onNodesChange} 
+              onNodesChange={onNodesChange}
+              onConnect={handleOpenCreateRelationshipModal} // Pass onConnect handler
+              onEdgeEdit={handleOpenEditRelationshipModal}  // Pass onEdgeEdit handler
+              onEdgeTransfer={handleEdgeTransfer} // Pass onEdgeTransfer handler
             />
           </div>
           
@@ -251,6 +341,19 @@ export default function GenogramApp() {
           </div>
         </div>
       </div>
+
+      {/* Relationship Modal */}
+      {isRelationshipModalOpen && (
+        <RelationshipModal
+          isOpen={isRelationshipModalOpen}
+          onClose={handleCloseRelationshipModal}
+          onSubmit={handleRelationshipModalSubmit}
+          relationshipData={modalMode === 'edit' ? currentRelationshipDetails : undefined}
+          sourceNodeId={modalMode === 'create' ? currentRelationshipDetails?.from : undefined}
+          targetNodeId={modalMode === 'create' ? currentRelationshipDetails?.to : undefined}
+          // familyMembers={familyMembers} // Optional: for displaying names
+        />
+      )}
     </div>
   );
 }
