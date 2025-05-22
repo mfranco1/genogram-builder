@@ -79,11 +79,11 @@ export default function GenogramApp() {
     switch (rel.type) {
       case 'married':
         edgeStyle.stroke = 'black';
-        edgeStyle.strokeWidth = 3;
+        edgeStyle.strokeWidth = 1;
         break;
         case 'divorced':
           edgeStyle.stroke = 'black';
-          edgeStyle.strokeWidth = 2;
+          edgeStyle.strokeWidth = 1;
           edgeStyle.strokeDasharray = '5 5';
           break;
         case 'parent-child':

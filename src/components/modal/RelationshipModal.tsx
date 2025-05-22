@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
+interface FamilyMember {
+  id: string;
+  name: string;
+  gender?: string;
+  birthYear?: string;
+  birthDate?: string;
+  deceased?: boolean;
+  deathYear?: string;
+  deathDate?: string;
+  medicalConditions?: string[];
+}
+
 interface RelationshipModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -7,7 +19,7 @@ interface RelationshipModalProps {
   relationshipData?: { id?: string; type: string; from: string; to: string };
   sourceNodeId?: string; // For new relationships
   targetNodeId?: string; // For new relationships
-  // familyMembers: Array<{ id: string; name: string }>; // Optional: for displaying names
+  familyMembers: FamilyMember[]; // For displaying names
 }
 
 const RelationshipModal: React.FC<RelationshipModalProps> = ({
@@ -17,7 +29,7 @@ const RelationshipModal: React.FC<RelationshipModalProps> = ({
   relationshipData,
   sourceNodeId,
   targetNodeId,
-  // familyMembers, // Optional
+  familyMembers
 }) => {
   const [type, setType] = useState('parent-child'); // Default type
 
@@ -55,8 +67,8 @@ const RelationshipModal: React.FC<RelationshipModalProps> = ({
         </h2>
         
         <div className="mb-4">
-          <p><span className="font-semibold">From:</span> {relationshipData?.from || sourceNodeId || 'N/A'}</p>
-          <p><span className="font-semibold">To:</span> {relationshipData?.to || targetNodeId || 'N/A'}</p>
+          <p><span className="font-semibold">From:</span> {familyMembers.find(m => m.id === (relationshipData?.from || sourceNodeId))?.name || relationshipData?.from || sourceNodeId || 'N/A'}</p>
+          <p><span className="font-semibold">To:</span> {familyMembers.find(m => m.id === (relationshipData?.to || targetNodeId))?.name || relationshipData?.to || targetNodeId || 'N/A'}</p>
         </div>
 
         <div className="mb-4">
