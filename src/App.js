@@ -69,49 +69,16 @@ export default function GenogramApp() {
   })), [familyMembers]);
 
   // Base edges derived from relationships (state from hook)
-  const baseEdges = useMemo(() => relationships.map((rel) => {
-    const edgeStyle = {};
-    let edgeMarkerEnd;
-    let edgeAnimated = false;
-
-    // Note: MarkerType needs to be imported if used here.
-    // Original App.js used MarkerType in this section.
-    switch (rel.type) {
-      case 'married':
-        edgeStyle.stroke = 'black';
-        edgeStyle.strokeWidth = 1;
-        break;
-        case 'divorced':
-          edgeStyle.stroke = 'black';
-          edgeStyle.strokeWidth = 1;
-          edgeStyle.strokeDasharray = '5 5';
-          break;
-        case 'parent-child':
-          edgeStyle.stroke = 'blue';
-          edgeStyle.strokeWidth = 1; 
-          edgeMarkerEnd = { type: MarkerType.ArrowClosed, color: 'blue' };
-          edgeAnimated = true; 
-          break;
-        case 'siblings':
-          edgeStyle.stroke = 'green';
-          edgeStyle.strokeWidth = 1;
-          break;
-        default:
-          edgeStyle.stroke = '#b1b1b7';
-          edgeStyle.strokeWidth = 1;
-      }
-  
-      return {
-        id: rel.id || uuidv4(), // uuidv4 still needed here for potential missing ids
-        source: String(rel.from),
-        target: String(rel.to),
-        label: rel.type,
-        style: edgeStyle,
-        markerEnd: edgeMarkerEnd,
-        animated: edgeAnimated,
-        type: 'default', // This might need to be 'smoothstep' or other based on getLayoutedElements
-      };
-    }), [relationships]);
+  const baseEdges = useMemo(() => 
+    relationships.map((rel) => ({
+      id: rel.id || uuidv4(),
+      source: String(rel.from),
+      target: String(rel.to),
+      type: rel.type,
+      label: rel.type
+    })), 
+    [relationships]
+  );
   
     // Layout calculation using imported getLayoutedElements
     const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {

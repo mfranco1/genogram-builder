@@ -1,5 +1,5 @@
 import dagre from '@dagrejs/dagre';
-import { Position, MarkerType } from '@xyflow/react';
+import { Position } from '@xyflow/react';
 
 export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
   const dagreGraph = new dagre.graphlib.Graph();
@@ -50,18 +50,13 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
     
     const isHorizontal = Math.abs(sourceY - targetY) < 50; 
     
-    // Default style for edges, can be overridden by specific types below
+    // Default style for edges
     let style = {
-        stroke: isHorizontal ? '#4f46e5' : '#10b981', // Default horizontal/vertical colors
-        strokeWidth: 2,
-        strokeDasharray: '0', // Default solid line
+      stroke: '#b1b1b7',
+      strokeWidth: 1,
+      strokeDasharray: '0'
     };
-    let marker = { // Default marker
-        type: MarkerType.ArrowClosed,
-        color: isHorizontal ? '#4f46e5' : '#10b981',
-        width: 20,
-        height: 20
-    };
+    let marker = undefined;
 
     return {
       sourceX,
@@ -93,35 +88,27 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
     // Pass 'nodes' (the original nodes array) to getEdgeParams
     const { sourcePosition, targetPosition } = getEdgeParams(edge.source, edge.target, nodes); 
     
-    const isParentChild = edge.type === 'parent' || edge.type === 'child';
+    const isParentChild = edge.type === 'parent-child';
     const isMarried = edge.type === 'married';
     const isDivorced = edge.type === 'divorced';
     const isSiblings = edge.type === 'siblings';
     
+    // Set edge style based on relationship type
     const edgeStyle = {
-      stroke: isParentChild ? '#10b981' : 
-             isMarried ? '#4f46e5' :
-             isDivorced ? '#ef4444' :
-             isSiblings ? '#8b5cf6' : '#9ca3af',
-      strokeWidth: 2,
-      strokeDasharray: isDivorced ? '5,3' : '0',
+      stroke: isParentChild ? 'black' : 
+             isMarried ? 'black' :
+             isDivorced ? 'black' :
+             isSiblings ? 'black' : '#b1b1b7',
+      strokeWidth: 1,
+      strokeDasharray: isDivorced ? '5 5' : '0',
     };
-
-    const markerEnd = isParentChild ? {
-      type: MarkerType.ArrowClosed,
-      color: '#10b981', // Specific color for parent-child arrow
-      width: 15,
-      height: 15
-    } : undefined; // No arrow for other types
 
     return {
       ...edge,
-      type: 'smoothstep', // Using smoothstep for better edge routing
-      sourcePosition: sourcePosition, // Use determined sourcePosition
-      targetPosition: targetPosition, // Use determined targetPosition
+      type: 'default',
+      sourcePosition: sourcePosition,
+      targetPosition: targetPosition,
       style: edgeStyle,
-      markerEnd,
-      animated: true // Kept animated as true from original
     };
   });
 
