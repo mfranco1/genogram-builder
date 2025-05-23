@@ -338,6 +338,28 @@ export default function GenogramApp() {
           familyMembers={familyMembers}
         />
       )}
+      
+      {/* Footer */}
+      <footer className="mt-8 py-6 border-t border-gray-200">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="mb-4 md:mb-0">
+              <p className="text-sm text-gray-600">&copy; {new Date().getFullYear()} Genogram Builder. All rights reserved.</p>
+              <p className="text-xs text-gray-500 mt-1">Version 0.1.0 pre-alpha</p>
+            </div>
+            <div className="flex space-x-4">
+              <a href="#" className="text-sm text-blue-600 hover:underline">Terms of Service</a>
+              <span className="text-gray-300">|</span>
+              <a href="#" className="text-sm text-blue-600 hover:underline">Privacy Policy</a>
+              <span className="text-gray-300">|</span>
+              <a href="mailto:support@genogrambuilder.com" className="text-sm text-blue-600 hover:underline">Contact Support</a>
+            </div>
+          </div>
+          <div className="mt-4 text-center md:text-left">
+            <p className="text-xs text-gray-500">For educational and professional use only. Not for medical diagnosis.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
