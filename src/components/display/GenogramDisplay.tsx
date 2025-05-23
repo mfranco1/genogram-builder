@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Edge, 
   Node, 
@@ -42,10 +42,12 @@ const GenogramDisplay: React.FC<GenogramDisplayProps> = ({
   onEdgeTransfer,
   onExport 
 }) => {
+  const [exportFormat, setExportFormat] = useState<'png' | 'pdf'>('png');
   const flowRef = useRef<HTMLDivElement>(null);
   
-  const handleExport = async (format: 'png' | 'pdf') => {
+  const handleExport = async (format?: 'png' | 'pdf') => {
     if (!flowRef.current) return;
+    const exportType = format || exportFormat;
     
     // Hide controls before capturing
     const controls = flowRef.current.querySelector('.react-flow__controls');
@@ -54,7 +56,7 @@ const GenogramDisplay: React.FC<GenogramDisplayProps> = ({
     }
     
     try {
-      if (format === 'png') {
+      if (exportType === 'png') {
         await exportToPng(flowRef.current);
       } else {
         await exportToPdf(flowRef.current);
@@ -99,21 +101,28 @@ const GenogramDisplay: React.FC<GenogramDisplayProps> = ({
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-end p-2 space-x-2 bg-gray-50 border-b border-gray-200">
+        <div className="relative">
+          <select
+            value={exportFormat}
+            onChange={(e) => setExportFormat(e.target.value as 'png' | 'pdf')}
+            className="appearance-none pl-3 pr-8 py-1.5 text-sm text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="png">PNG Image</option>
+            <option value="pdf">PDF Document</option>
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+              <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+            </svg>
+          </div>
+        </div>
         <button
-          onClick={() => handleExport('png')}
-          className="flex items-center px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          title="Export as PNG"
+          onClick={() => handleExport()}
+          className="flex items-center px-3 py-1.5 text-sm text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          title="Export genogram"
         >
-          <Download className="w-4 h-4 mr-1" />
-          <span>PNG</span>
-        </button>
-        <button
-          onClick={() => handleExport('pdf')}
-          className="flex items-center px-3 py-1 text-sm text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          title="Export as PDF"
-        >
-          <Download className="w-4 h-4 mr-1 text-white" />
-          <span>PDF</span>
+          <Download className="w-4 h-4 mr-1.5" />
+          <span>Export</span>
         </button>
       </div>
       <div ref={flowRef} style={{ height: '600px', width: '100%' }} className="border border-t-0 border-gray-200 rounded-b bg-white shadow">
