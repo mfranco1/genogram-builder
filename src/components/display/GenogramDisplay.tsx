@@ -43,36 +43,48 @@ const GenogramDisplay: React.FC<GenogramDisplayProps> = ({
   onExport 
 }) => {
   const [exportFormat, setExportFormat] = useState<'png' | 'pdf'>('png');
+  const [isExporting, setIsExporting] = useState<boolean>(false);
   const flowRef = useRef<HTMLDivElement>(null);
   
   const handleExport = async (format?: 'png' | 'pdf') => {
-    if (!flowRef.current) return;
-    const exportType = format || exportFormat;
+    if (!flowRef.current || isExporting) return; 
     
-    // Hide controls before capturing
-    const controls = flowRef.current.querySelector('.react-flow__controls');
-    if (controls) {
-      (controls as HTMLElement).style.visibility = 'hidden';
-    }
-    
-    try {
-      if (exportType === 'png') {
-        await exportToPng(flowRef.current);
-      } else {
-        await exportToPdf(flowRef.current);
+    setIsExporting(true); 
+
+    // Defer the actual export to allow UI to update
+    setTimeout(async () => {
+      if (!flowRef.current) {
+        setIsExporting(false);
+        return;
       }
-      
-      if (onExport) {
-        onExport(format);
-      }
-    } catch (error) {
-      console.error('Export failed:', error);
-    } finally {
-      // Show controls again
+      // Hide controls before capturing
+      const controls = flowRef.current.querySelector('.react-flow__controls');
       if (controls) {
-        (controls as HTMLElement).style.visibility = '';
+        (controls as HTMLElement).style.visibility = 'hidden';
       }
-    }
+
+      try {
+        const exportType = format || exportFormat;
+        if (exportType === 'png') {
+          await exportToPng(flowRef.current as HTMLElement); 
+        } else {
+          await exportToPdf(flowRef.current as HTMLElement); 
+        }
+        
+        if (onExport) {
+          onExport(exportType); 
+        }
+      } catch (error) {
+        console.error('Export failed:', error);
+        // Optionally, add user feedback here (e.g., a toast notification)
+      } finally {
+        // Show controls again
+        if (controls) {
+          (controls as HTMLElement).style.visibility = '';
+        }
+        setIsExporting(false); 
+      }
+    }, 0); 
   };
   
   // Edge update handlers - using type assertions to work around type issues
@@ -106,6 +118,7 @@ const GenogramDisplay: React.FC<GenogramDisplayProps> = ({
             value={exportFormat}
             onChange={(e) => setExportFormat(e.target.value as 'png' | 'pdf')}
             className="appearance-none pl-3 pr-8 py-1.5 text-sm text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={isExporting}
           >
             <option value="png">PNG Image</option>
             <option value="pdf">PDF Document</option>
@@ -118,11 +131,24 @@ const GenogramDisplay: React.FC<GenogramDisplayProps> = ({
         </div>
         <button
           onClick={() => handleExport()}
-          className="flex items-center px-3 py-1.5 text-sm text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="flex items-center px-3 py-1.5 text-sm text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           title="Export genogram"
+          disabled={isExporting}
         >
-          <Download className="w-4 h-4 mr-1.5" />
-          <span>Export</span>
+          {isExporting ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Exporting...</span>
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4 mr-1.5" />
+              <span>Export</span>
+            </>
+          )}
         </button>
       </div>
       <div ref={flowRef} style={{ height: '600px', width: '100%' }} className="border border-t-0 border-gray-200 rounded-b bg-white shadow">
