@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { 
   Edge, 
   Node, 
@@ -18,6 +18,8 @@ import {
   OnNodesDelete
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Download } from 'lucide-react';
+import { exportToPng, exportToPdf } from '../../utils/exportUtils.tsx';
 
 interface GenogramDisplayProps {
   nodes: Node[];
@@ -27,6 +29,7 @@ interface GenogramDisplayProps {
   onConnect?: (connection: Connection) => void;
   onEdgeEdit?: (edge: Edge) => void;
   onEdgeTransfer?: (oldEdge: Edge, newConnection: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }) => void;
+  onExport?: (format: 'png' | 'pdf') => void;
 }
 
 const GenogramDisplay: React.FC<GenogramDisplayProps> = ({ 
@@ -36,8 +39,39 @@ const GenogramDisplay: React.FC<GenogramDisplayProps> = ({
   onNodesChange, 
   onConnect,
   onEdgeEdit, 
-  onEdgeTransfer 
+  onEdgeTransfer,
+  onExport 
 }) => {
+  const flowRef = useRef<HTMLDivElement>(null);
+  
+  const handleExport = async (format: 'png' | 'pdf') => {
+    if (!flowRef.current) return;
+    
+    // Hide controls before capturing
+    const controls = flowRef.current.querySelector('.react-flow__controls');
+    if (controls) {
+      (controls as HTMLElement).style.visibility = 'hidden';
+    }
+    
+    try {
+      if (format === 'png') {
+        await exportToPng(flowRef.current);
+      } else {
+        await exportToPdf(flowRef.current);
+      }
+      
+      if (onExport) {
+        onExport(format);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      // Show controls again
+      if (controls) {
+        (controls as HTMLElement).style.visibility = '';
+      }
+    }
+  };
   
   // Edge update handlers - using type assertions to work around type issues
   const handleEdgeUpdateStart = React.useCallback((event: any, edge: Edge) => {
@@ -63,8 +97,27 @@ const GenogramDisplay: React.FC<GenogramDisplayProps> = ({
   }
             
   return (
-    <div style={{ height: '600px', width: '100%' }} className="border border-gray-200 rounded bg-white shadow">
-      <ReactFlowProvider>
+    <div className="flex flex-col h-full">
+      <div className="flex justify-end p-2 space-x-2 bg-gray-50 border-b border-gray-200">
+        <button
+          onClick={() => handleExport('png')}
+          className="flex items-center px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          title="Export as PNG"
+        >
+          <Download className="w-4 h-4 mr-1" />
+          <span>PNG</span>
+        </button>
+        <button
+          onClick={() => handleExport('pdf')}
+          className="flex items-center px-3 py-1 text-sm text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          title="Export as PDF"
+        >
+          <Download className="w-4 h-4 mr-1 text-white" />
+          <span>PDF</span>
+        </button>
+      </div>
+      <div ref={flowRef} style={{ height: '600px', width: '100%' }} className="border border-t-0 border-gray-200 rounded-b bg-white shadow">
+        <ReactFlowProvider>
         <XYFlow
           nodes={nodes}
           edges={edges}
@@ -97,8 +150,9 @@ const GenogramDisplay: React.FC<GenogramDisplayProps> = ({
         >
           <Background variant={BackgroundVariant.Dots} gap={12} size={1} color="#aaa" />
           <Controls />
-        </XYFlow>
-      </ReactFlowProvider>
+          </XYFlow>
+        </ReactFlowProvider>
+      </div>
     </div>
   );
 };

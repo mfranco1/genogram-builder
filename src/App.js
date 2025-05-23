@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Download } from 'lucide-react'; // Kept for PDF/PNG download buttons
 import { applyNodeChanges, MarkerType } from '@xyflow/react'; // MarkerType might be needed by baseEdges
 import '@xyflow/react/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
@@ -227,11 +226,7 @@ export default function GenogramApp() {
 }, [updateRelationship, setError]); // Added setError to dependency array
 
 
-  // Function for downloading genogram (PDF/PNG) - kept as per instructions
-  const downloadGenogram = (format) => {
-    alert(`Downloading genogram as ${format}`);
-    // In a real app, this would use a library to generate PDF/PNG
-  };
+
 
   return (
     <div className="max-w-6xl mx-auto p-4">
@@ -292,22 +287,8 @@ export default function GenogramApp() {
         {/* Center panel - Genogram Display */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg shadow">
-            <div className="p-4 border-b flex justify-between items-center">
+            <div className="p-4 border-b">
               <h2 className="text-lg font-medium">Family Genogram</h2>
-              <div className="flex space-x-2">
-                <button
-                  className="flex items-center py-1 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                  onClick={() => downloadGenogram('pdf')}
-                >
-                  <Download size={16} className="mr-1" /> PDF
-                </button>
-                <button
-                  className="flex items-center py-1 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                  onClick={() => downloadGenogram('png')}
-                >
-                  <Download size={16} className="mr-1" /> PNG
-                </button>
-              </div>
             </div>
             <GenogramDisplay 
               nodes={nodes} 
@@ -317,6 +298,9 @@ export default function GenogramApp() {
               onConnect={handleOpenCreateRelationshipModal}
               onEdgeEdit={handleOpenEditRelationshipModal}
               onEdgeTransfer={handleEdgeTransfer}
+              onExport={(format) => {
+                console.log(`Exporting to ${format}...`);
+              }}
             />
           </div>
           

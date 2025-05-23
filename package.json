@@ -10,6 +10,8 @@
     "@testing-library/user-event": "^13.5.0",
     "@types/uuid": "^10.0.0",
     "@xyflow/react": "^12.6.4",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^3.0.1",
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
