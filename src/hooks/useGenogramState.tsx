@@ -17,13 +17,15 @@ interface Relationship {
   from: string;
   to: string;
   type: string;
+  sourceHandle?: string;
+  targetHandle?: string;
 }
 
 
 export const useGenogramState = () => {
   const [jsonInput, setJsonInput] = useState('');
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
-  const [relationships, setRelationships] = useState<Relationship[]>([]);
+  const [familyMembers, setFamilyMembers] = useState([] as FamilyMember[]);
+  const [relationships, setRelationships] = useState([] as Relationship[]);
   const [newMember, setNewMember] = useState({
     id: uuidv4(),
     name: '',
@@ -136,7 +138,16 @@ export const useGenogramState = () => {
       }
       
       if (data.relationships && Array.isArray(data.relationships)) {
-        setRelationships(data.relationships);
+        // Ensure each relationship has the required fields and default handle values if not present
+        const processedRelationships = data.relationships.map(rel => ({
+          id: rel.id || uuidv4(),
+          from: rel.from,
+          to: rel.to,
+          type: rel.type || 'parent-child',
+          sourceHandle: rel.sourceHandle || 'right',
+          targetHandle: rel.targetHandle || 'left'
+        }));
+        setRelationships(processedRelationships);
       } else {
         // If no relationships array, or it's not an array, initialize to empty
         setRelationships([]);
@@ -161,18 +172,26 @@ export const useGenogramState = () => {
         deathDate: deceased ? deathDate : undefined,
         medicalConditions: medicalConditions || undefined
       })).filter(Boolean),
-      relationships: relationships.map(({ id, from, to, type }) => ({
+      relationships: relationships.map(({ id, from, to, type, sourceHandle, targetHandle }) => ({
         id,
         from,
         to,
-        type
+        type,
+        sourceHandle,
+        targetHandle
       })).filter(Boolean)
     };
     
     return JSON.stringify(data, null, 2);
   };
 
-  const addRelationshipFromModal = (relationData: { from: string; to: string; type: string }) => {
+  const addRelationshipFromModal = (relationData: { 
+    from: string; 
+    to: string; 
+    type: string;
+    sourceHandle?: string;
+    targetHandle?: string;
+  }) => {
     try {
       console.log('addRelationshipFromModal called with:', relationData);
       const { from, to, type } = relationData;
@@ -205,11 +224,13 @@ export const useGenogramState = () => {
         return false;
       }
 
-      const newRel = {
+      const newRel: Relationship = {
         id: uuidv4(), 
         from,
         to,
         type,
+        sourceHandle: relationData.sourceHandle || 'right', // Default to right handle if not specified
+        targetHandle: relationData.targetHandle || 'left',  // Default to left handle if not specified
       };
 
       console.log('Adding new relationship:', newRel);
@@ -227,7 +248,16 @@ export const useGenogramState = () => {
     }
   };
 
-  const updateRelationship = (relationshipId: string, updatedData: { type?: string; from?: string; to?: string }) => {
+  const updateRelationship = (
+    relationshipId: string, 
+    updatedData: { 
+      type?: string; 
+      from?: string; 
+      to?: string;
+      sourceHandle?: string;
+      targetHandle?: string;
+    }
+  ) => {
     if (!relationshipId) {
       setError('Relationship ID is required for an update.');
       return false;
@@ -268,9 +298,12 @@ export const useGenogramState = () => {
   
     // Apply updates: Merge current relationship with updatedData fields
     // Only fields present in updatedData will overwrite currentRelationship fields.
-    const updatedRel = {
+    const updatedRel: Relationship = {
       ...currentRelationship,
       ...updatedData, // This will selectively update fields present in updatedData
+      // If sourceHandle/targetHandle is not provided in updatedData, keep the existing value
+      sourceHandle: updatedData.sourceHandle !== undefined ? updatedData.sourceHandle : currentRelationship.sourceHandle,
+      targetHandle: updatedData.targetHandle !== undefined ? updatedData.targetHandle : currentRelationship.targetHandle,
     };
     
     relationshipsCopy[relationshipIndex] = updatedRel;

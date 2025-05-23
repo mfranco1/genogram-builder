@@ -28,7 +28,15 @@ interface GenogramDisplayProps {
   onNodesChange: (changes: NodeChange[]) => void;
   onConnect?: (connection: Connection) => void;
   onEdgeEdit?: (edge: Edge) => void;
-  onEdgeTransfer?: (oldEdge: Edge, newConnection: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }) => void;
+  onEdgeTransfer?: (
+    oldEdge: Edge, 
+    newConnection: { 
+      source: string; 
+      target: string; 
+      sourceHandle?: string | null; 
+      targetHandle?: string | null;
+    }
+  ) => void;
   onExport?: (format: 'png' | 'pdf') => void;
 }
 
@@ -92,9 +100,15 @@ const GenogramDisplay: React.FC<GenogramDisplayProps> = ({
     console.log('Edge update started:', edge);
   }, []);
 
-  const handleEdgeUpdate = React.useCallback((oldEdge: Edge, newConnection: any) => {
+  const handleEdgeUpdate = React.useCallback((oldEdge: Edge, newConnection: Connection) => {
     if (onEdgeTransfer) {
-      onEdgeTransfer(oldEdge, newConnection);
+      // Ensure we have handle information in the new connection
+      const connectionWithHandles = {
+        ...newConnection,
+        sourceHandle: newConnection.sourceHandle || 'right', // Default to right handle if not specified
+        targetHandle: newConnection.targetHandle || 'left',  // Default to left handle if not specified
+      };
+      onEdgeTransfer(oldEdge, connectionWithHandles);
     }
   }, [onEdgeTransfer]);
 

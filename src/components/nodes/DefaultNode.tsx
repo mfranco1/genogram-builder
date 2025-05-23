@@ -8,11 +8,21 @@ const DefaultNode = ({ data }) => {
   
   return (
     <div style={nodeStyle}>
-      {/* Top handle */}
-      <Handle type="target" position={Position.Top} style={{ ...handleStyle, left: '50%' }} />
+      {/* Top handle - target only */}
+      <Handle 
+        id="top" 
+        type="target" 
+        position={Position.Top} 
+        style={{ ...handleStyle, left: '50%' }} 
+      />
       
-      {/* Left handle */}
-      <Handle type="source" position={Position.Left} style={{ ...handleStyle, top: '50%' }} />
+      {/* Left handle - source only */}
+      <Handle 
+        id="left" 
+        type="source" 
+        position={Position.Left} 
+        style={{ ...handleStyle, top: '50%' }} 
+      />
       
       <div className="text-xs p-1">
         <div className="font-medium text-gray-900">{data.name}</div>
@@ -24,11 +34,21 @@ const DefaultNode = ({ data }) => {
         )}
       </div>
       
-      {/* Right handle */}
-      <Handle type="source" position={Position.Right} style={{ ...handleStyle, top: '50%' }} />
+      {/* Right handle - source only */}
+      <Handle 
+        id="right" 
+        type="source" 
+        position={Position.Right} 
+        style={{ ...handleStyle, top: '50%' }} 
+      />
       
-      {/* Bottom handle */}
-      <Handle type="source" position={Position.Bottom} style={{ ...handleStyle, left: '50%' }} />
+      {/* Bottom handle - source only */}
+      <Handle 
+        id="bottom" 
+        type="source" 
+        position={Position.Bottom} 
+        style={{ ...handleStyle, left: '50%' }} 
+      />
       
       {data.deceased && (
         <div className="absolute inset-0 flex items-center justify-center">

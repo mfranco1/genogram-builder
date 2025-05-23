@@ -111,14 +111,21 @@ export default function GenogramApp() {
   );
 
   // Modal Handler Functions
-  const handleOpenCreateRelationshipModal = useCallback((params) => {
-    console.log('Opening create relationship modal with params:', params);
+  const handleOpenCreateRelationshipModal = useCallback((connection) => {
+    console.log('Connection attempt:', connection);
+    
+    if (!connection.source || !connection.target) {
+      console.error('Invalid connection attempt - missing source or target');
+      setError('Cannot create connection: Missing source or target node');
+      return false;
+    }
+    
     setModalMode('create');
     setCurrentRelationshipDetails({ 
-      from: params.source, 
-      to: params.target,
-      sourceHandle: params.sourceHandle,
-      targetHandle: params.targetHandle,
+      from: connection.source, 
+      to: connection.target,
+      sourceHandle: connection.sourceHandle || 'right', // Default to right handle if not specified
+      targetHandle: connection.targetHandle || 'left',  // Default to left handle if not specified
       type: 'parent-child' // Default type
     });
     setError('');
@@ -348,7 +355,7 @@ export default function GenogramApp() {
               <p className="text-xs text-gray-500 mt-1">Version 0.1.0 pre-alpha</p>
             </div>
             <div className="flex space-x-4">
-              <a href="#" className="text-sm text-blue-600 hover:underline">Terms of Service</a>
+              <a href="/terms.html" className="text-sm text-blue-600 hover:underline">Terms of Service</a>
               <span className="text-gray-300">|</span>
               <a href="#" className="text-sm text-blue-600 hover:underline">Privacy Policy</a>
               <span className="text-gray-300">|</span>
