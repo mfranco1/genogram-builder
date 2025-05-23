@@ -357,7 +357,7 @@ export default function GenogramApp() {
             <div className="flex space-x-4">
               <a href="/terms.html" className="text-sm text-blue-600 hover:underline">Terms of Service</a>
               <span className="text-gray-300">|</span>
-              <a href="#" className="text-sm text-blue-600 hover:underline">Privacy Policy</a>
+              <a href="/privacy.html" className="text-sm text-blue-600 hover:underline">Privacy Policy</a>
               <span className="text-gray-300">|</span>
               <a href="mailto:support@genogrambuilder.com" className="text-sm text-blue-600 hover:underline">Contact Support</a>
             </div>
